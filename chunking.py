@@ -7,8 +7,9 @@ these are libraries for chunking if needed
 """
 from typing import Any # this library is used for typehints
 from sentence_transformers import SentenceTransformer, util # this library is used for semantic chunking
-import nltk
-from nltk.tokenize import sent_tokenize
+import nltk # natural language toolkit
+from nltk.tokenize import sent_tokenize # this is used to separate proper sentences
+import fitz # this library is used to extract structred text from pdfs
 
 
 class Chunking:
@@ -217,7 +218,8 @@ class SlidingWindowChunking(Chunking):
         else:
             return [{"error": "no tokens found"}]
         
-class AdjacentSemanticChunking(Chunking): # based on lines
+class AdjacentSemanticChunking(Chunking): # sentence based semantic chunking
+
     """
     this class provides chunking on the basis of semantic similarity
     """
@@ -265,30 +267,31 @@ class AdjacentSemanticChunking(Chunking): # based on lines
         if sentences:
             # here we are calculating cosine similarity between consecutive sentences
             similarities = util.cos_sim(embeddings[:-1], embeddings[1:]).diagonal() # diagonal method is used to get the diagonal elements of the similarity matrix
-            """Matrix (3x3):
+            """
+            Matrix (3x3):
                 [[sim(s0,s1), sim(s0,s2), sim(s0,s3)]
                 [sim(s1,s1), sim(s1,s2), sim(s1,s3)]
                 [sim(s2,s1), sim(s2,s2), sim(s2,s3)]]
 
-                Diagonal: [sim(s0,s1), sim(s1,s2), sim(s2,s3)]
+                Diagonal: [sim(s0,s1), sim(s1,s2), sim(s2,s3)] # this is adjacent sentences similarity
             """
-            current_chunk_sent = [embeddings[sent_num]]
+            current_chunk_embds = [embeddings[sent_num]]
 
             for i, sim in enumerate(similarities):
                 if sim >= self.threshold:
-                    current_chunk_sent.append(embeddings[i+1])
+                    current_chunk_embds.append(embeddings[i+1])
                 else:
                     chunk = " ".join(sentences[sent_num: i+1])
                     self.chunks.append({
                         "chunk_num": chunk_num,
                         "chunk": chunk,
                         "meta_data": {**meta_data,
-                                      "sentence_length": len(sentences[sent_num: i+1]),
+                                      "sentence_count": len(sentences[sent_num: i+1]),
                                       "chunking_type": "Semantic"}
                     })
                     chunk_num += 1
                     sent_num = i + 1
-                    current_chunk_sent = [embeddings[sent_num]] if sent_num < len(sentences) else []
+                    current_chunk_embds = [embeddings[sent_num]] if sent_num < len(sentences) else []
 
             if sent_num < len(sentences):
                 chunk = " ".join(sentences[sent_num:])
@@ -296,7 +299,7 @@ class AdjacentSemanticChunking(Chunking): # based on lines
                     "chunk_num": chunk_num,
                     "chunk": chunk,
                     "meta_data": {**meta_data,
-                                  "sentence_length": len(sentences[sent_num:]),
+                                  "sentence_count": len(sentences[sent_num:]),
                                   "chunking_type": "Semantic"}
                 })
 
