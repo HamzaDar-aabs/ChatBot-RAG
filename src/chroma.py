@@ -1,52 +1,53 @@
+from typing import Any
 import chromadb
 from embedding import Embedder
 
-sample_chunks = [
-    {
-        "chunk_num": 1,
-        "chunk": "Artificial intelligence is transforming industries.",
-        "meta_data": {
-            "tokens": 6,
-            "chunking_type": "fixed_size",
-            "source": "article1"
-        }
-    },
-    {
-        "chunk_num": 2,
-        "chunk": "Chroma is a vector database for RAG applications.",
-        "meta_data": {
-            "tokens": 8,
-            "chunking_type": "fixed_size",
-            "source": "article2"
-        }
-    },
-    {
-        "chunk_num": 3,
-        "chunk": "Custom embeddings can be integrated into Chroma.",
-        "meta_data": {
-            "tokens": 7,
-            "chunking_type": "fixed_size",
-            "source": "article3"
-        }
-    }
-]
 
-embedder = Embedder()
-embdings = embedder.embed(sample_chunks)
-
-# print(embdings)
+class CustomError(Exception):
+    """
+    this is a custom error class for handling specific exceptions.
+    """
+    pass
 
 
+class ChromaDBHandler:
+    def __init__(self, db_path: str = "chroma_db"):
+        """
+        Initializes the ChromaDBHandler with a persistent ChromaDB client.
+        which makes collection in disk.
 
-chroma_client = chromadb.PersistentClient(path= "src/chroma_db")
-collection = chroma_client.get_or_create_collection(name="my_collection")
-collection.add(
-    ids=[f"doc{c['chunk_num']}" for c in embdings],
-    documents=[c["chunk"] for c in embdings],
-    embeddings=[c["embedding"] for c in embdings],
-    metadatas=[c["meta_data"] for c in embdings]
-)
+        Args:
+            db_path (str): The file path where the ChromaDB database will be stored.
+        """
+        self.client = chromadb.PersistentClient(path=db_path)
 
-collection_data = collection.get(limit=1, offset=0, include=["metadatas", "documents", "embeddings"])
-print(collection_data)
-# chroma_client.delete_collection(name="my_collection")
+    def CreateChromaCollection(self, collection_name: str) -> None:
+        """
+        this function creates a collection in ChromaDB.
+
+        Args:
+            collection_name (str): The name of the collection to be created.
+
+        Returns:
+            None
+        """
+        if self.client.get_collection(name=collection_name):
+            raise CustomError(f"Collection '{collection_name}' already exists.")
+        self.client.create_collection(name=collection_name)
+    
+    def DeleteChromaCollection(self, collection_name: str) -> None:
+        """
+        this function deletes a collection in ChromaDB.
+
+        Args:
+            collection_name (str): The name of the collection to be deleted.
+        """
+        if not self.client.get_collection(name=collection_name):
+            raise CustomError(f"Collection {collection_name} does not exist")
+        
+        self.client.delete_collection(collection_name)
+
+    def GetChromaRecord(self, collection_name: str, id: str) -> dict:
+        pass
+
+        
