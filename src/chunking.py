@@ -10,14 +10,16 @@ from sentence_transformers import SentenceTransformer, util # this library is us
 import nltk # natural language toolkit
 from nltk.tokenize import sent_tokenize # this is used to separate proper sentences
 import fitz # this library is used to extract structred text from pdfs
+from config import Config
 
 
 class Chunking:
     """
-    this class provides a base for all methods to impliment
+    this class provides a base for all methods to impliment.
+    take it as a model class.
     """
 
-    def chunk(self, text: str, meta_data: dict[str, Any]):
+    def chunk(self, text: str, meta_data: dict[str, str]):
         """
         this method chunks text
 
@@ -168,7 +170,7 @@ class ParagraphBasedChunking(Chunking):
 
 class SlidingWindowChunking(Chunking):
     """
-    this class provides chunking on the basis of sliding window
+    this class provides chunking on the basis of sliding window tokens/words based
     """
     def __init__(self, window_size: int = 500, over_lap: int = 100):
         """
@@ -218,18 +220,23 @@ class SlidingWindowChunking(Chunking):
         else:
             return [{"error": "no tokens found"}]
         
-class AdjacentSemanticChunking(Chunking): # sentence based semantic chunking
+class SemanticChunking(Chunking): # sentence based semantic chunking
 
     """
     this class provides chunking on the basis of semantic similarity
     """
-    def __init__(self, model: Any = 'all-MiniLM-L6-v2', threshold: float = 0.15):
+    def __init__(self, model: str = Config.MODEL_NAME, threshold: float = 0.15): # Config class is used to get model name from environment variable
         """
+
         initialization of parameters needed
         
         Args:
             model: it is a model used for making chunks based on semantic similarity
-            
+            - this particular model is small in size and good for semantic similarity from sentence-transformers
+            threshold: it is a threshold value for cosine similarity between sentences
+            - how much similarity is needed to group sentences together
+            - near 1 means very similar, near 0 means not similar
+
         returns:
             list of dictionary
         """
